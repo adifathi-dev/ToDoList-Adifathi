@@ -39,7 +39,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onAddTask, onUpdateTask, onD
                     ))}
                 </tbody>
             </table>
-            <div className="p-3 flex justify-start print:hidden">
+            <div data-html2canvas-ignore="true" className="p-3 flex justify-start print:hidden">
                  <button 
                     onClick={onAddTask}
                     className="bg-[#06064F] text-white px-3 py-2 rounded-md text-xs font-semibold hover:opacity-90 active:opacity-100 transition-opacity flex items-center gap-1"
