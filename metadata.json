@@ -1,0 +1,5 @@
+{
+  "name": "To-Do List Adifathi",
+  "description": "A dynamic web application to manage monthly activities and tasks, replicating a spreadsheet layout. It includes features for CRUD operations, status tracking, a monthly calendar, and the ability to export the task list as a PDF report.",
+  "requestFramePermissions": []
+}
