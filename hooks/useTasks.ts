@@ -7,17 +7,17 @@ const getLocalStorageKey = (date: Date) => {
 };
 
 const initialTasks: Task[] = [
-    { id: '1', completed: false, name: 'Pelatihan Koding OJT 2', priority: Priority.Urgent, status: Status.NeedApproval, deadline: '2025-09-09' },
-    { id: '2', completed: false, name: 'Pelatihan PMMKS OJT 1', priority: Priority.Urgent, status: Status.NeedApproval, deadline: '2025-09-17' },
-    { id: '3', completed: false, name: 'Syukuran & Rapat Berssama Yayasan', priority: Priority.High, status: Status.InProgress, deadline: '2025-09-13' },
-    { id: '4', completed: true, name: 'Pengambilan Dokumen KSP ke Dinas Pendidikan', priority: Priority.Low, status: Status.Pending, deadline: '2025-09-15' },
-    { id: '5', completed: true, name: 'Pembuatan SI September tahap 1', priority: Priority.Medium, status: Status.NeedApproval, deadline: '2025-09-03' },
-    { id: '6', completed: false, name: 'Pembuatan SI September tahap 2', priority: Priority.Medium, status: Status.InProgress, deadline: '2025-09-15' },
+    { id: '1', completed: false, name: 'Pelatihan Koding OJT 2', priority: Priority.Urgent, status: Status.NeedApproval, deadline: '2025-09-09', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
+    { id: '2', completed: false, name: 'Pelatihan PMMKS OJT 1', priority: Priority.Urgent, status: Status.NeedApproval, deadline: '2025-09-17', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
+    { id: '3', completed: false, name: 'Syukuran & Rapat Berssama Yayasan', priority: Priority.High, status: Status.InProgress, deadline: '2025-09-13', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
+    { id: '4', completed: true, name: 'Pengambilan Dokumen KSP ke Dinas Pendidikan', priority: Priority.Low, status: Status.Pending, deadline: '2025-09-15', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
+    { id: '5', completed: true, name: 'Pembuatan SI September tahap 1', priority: Priority.Medium, status: Status.NeedApproval, deadline: '2025-09-03', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
+    { id: '6', completed: false, name: 'Pembuatan SI September tahap 2', priority: Priority.Medium, status: Status.InProgress, deadline: '2025-09-15', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
 ];
 
 
-export const useTasks = () => {
-    const [currentDate, setCurrentDate] = useState(new Date(2025, 8, 1)); // Set to Sep 2025 for demo
+export const useTasks = (date?: Date) => {
+    const [currentDate, setCurrentDate] = useState(date || new Date(2025, 8, 1)); // Set to Sep 2025 for demo
     const [tasks, setTasks] = useState<Task[]>([]);
 
     useEffect(() => {
@@ -50,13 +50,16 @@ export const useTasks = () => {
     }, [tasks, currentDate]);
 
     const addTask = useCallback(() => {
+        const now = new Date().toISOString();
         const newTask: Task = {
-            id: new Date().toISOString(),
+            id: now,
             name: 'Tugas Baru',
             completed: false,
             priority: Priority.Medium,
             status: Status.Pending,
             deadline: new Date().toISOString().split('T')[0],
+            createdAt: now,
+            updatedAt: now,
         };
         setTasks(prevTasks => [...prevTasks, newTask]);
     }, []);
@@ -64,7 +67,7 @@ export const useTasks = () => {
     const updateTask = useCallback((id: string, updatedTask: Partial<Omit<Task, 'id'>>) => {
         setTasks(prevTasks =>
             prevTasks.map(task =>
-                task.id === id ? { ...task, ...updatedTask } : task
+                task.id === id ? { ...task, ...updatedTask, updatedAt: new Date().toISOString() } : task
             )
         );
     }, []);
@@ -76,7 +79,7 @@ export const useTasks = () => {
     const toggleTaskCompletion = useCallback((id: string) => {
         setTasks(prevTasks =>
             prevTasks.map(task =>
-                task.id === id ? { ...task, completed: !task.completed, status: !task.completed ? Status.Selesai : Status.Pending } : task
+                task.id === id ? { ...task, completed: !task.completed, status: !task.completed ? Status.Selesai : Status.Pending, updatedAt: new Date().toISOString() } : task
             )
         );
     }, []);

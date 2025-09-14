@@ -21,4 +21,24 @@ export interface Task {
     priority: Priority;
     status: Status;
     deadline: string; // ISO string format 'YYYY-MM-DD'
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface BudgetItem {
+    id: string; // Linked to task id
+    taskName: string;
+    anggaranKegiatan: number;
+    anggaranTransport: number;
+    anggaranPanitia: number;
+    fileRAB?: string; // filename
+}
+
+export interface ExpenseItem {
+    id: string; // Linked to task id
+    taskName: string;
+    biayaKegiatan: number;
+    biayaTransport: number;
+    biayaPanitia: number;
+    fileBukti?: string; // filename
 }
