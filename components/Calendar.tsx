@@ -26,15 +26,41 @@ const Calendar: React.FC<CalendarProps> = ({ date, setDate, tasks }) => {
 
     const today = new Date();
 
-    const deadlines = useMemo(() => {
+    const taskDateRanges = useMemo(() => {
         const map = new Map<string, { color: string }[]>();
         if (!tasks) return map;
+
         tasks.forEach((task, index) => {
-            if (task.deadline) {
+            if (typeof task.pelaksanaanStart !== 'string' || typeof task.deadline !== 'string' || !task.pelaksanaanStart || !task.deadline) {
+                return;
+            }
+
+            try {
+                const [startY, startM, startD] = task.pelaksanaanStart.split('-').map(Number);
+                const startDate = new Date(Date.UTC(startY, startM - 1, startD));
+
+                const [endY, endM, endD] = task.deadline.split('-').map(Number);
+                const endDate = new Date(Date.UTC(endY, endM - 1, endD));
+
+                if (startDate > endDate) return;
+
                 const color = deadlineColors[index % deadlineColors.length];
-                const deadlineTasks = map.get(task.deadline) || [];
-                deadlineTasks.push({ color });
-                map.set(task.deadline, deadlineTasks);
+                
+                let currentDate = new Date(startDate);
+                while (currentDate <= endDate) {
+                    const year = currentDate.getUTCFullYear();
+                    const month = String(currentDate.getUTCMonth() + 1).padStart(2, '0');
+                    const day = String(currentDate.getUTCDate()).padStart(2, '0');
+                    const dayString = `${year}-${month}-${day}`;
+                    
+                    const dayTasks = map.get(dayString) || [];
+                    dayTasks.push({ color });
+                    map.set(dayString, dayTasks);
+
+                    currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+                }
+            } catch (e) {
+                console.error("Error parsing task dates for calendar:", task, e);
             }
         });
         return map;
@@ -51,11 +77,11 @@ const Calendar: React.FC<CalendarProps> = ({ date, setDate, tasks }) => {
         for (let day = 1; day <= daysInMonth; day++) {
             const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
             const dayString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const deadlineInfo = deadlines.get(dayString);
+            const dayMarkersInfo = taskDateRanges.get(dayString);
             
             days.push(
                 <div key={day} className="relative h-10 flex justify-center items-center">
-                    {deadlineInfo && deadlineInfo.slice(0, 7).map((info, i) => (
+                    {dayMarkersInfo && dayMarkersInfo.slice(0, 7).map((info, i) => (
                         <div
                             key={i}
                             className="absolute w-8 h-8 rounded-full border-2"

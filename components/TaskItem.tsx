@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Task, Priority, Status, deadlineColors } from '../types';
 import { calculateSisaWaktu } from '../utils/dateUtils';
 
@@ -29,23 +29,9 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, index, onUpdate, onDelete, on
     
     const sisaWaktu = calculateSisaWaktu(task.deadline);
     const taskDeadlineColor = deadlineColors[index % deadlineColors.length];
-    
-    const [isEditing, setIsEditing] = useState(task.name === 'Tugas Baru');
-
-    useEffect(() => {
-        if (task.name === 'Tugas Baru') {
-            setIsEditing(true);
-        }
-    }, [task.name]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         onUpdate(task.id, { [e.target.name]: e.target.value });
-    };
-    
-    const handleBlur = () => {
-        if (task.name !== 'Tugas Baru') {
-            setIsEditing(false);
-        }
     };
 
     return (
@@ -65,9 +51,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, index, onUpdate, onDelete, on
                     name="name"
                     value={task.name}
                     onChange={handleInputChange}
-                    onBlur={handleBlur}
-                    autoFocus={isEditing}
-                    className={`w-full bg-transparent p-1 rounded-md transition-all ${task.completed ? 'line-through text-slate-500' : 'text-slate-800'} ${isEditing ? 'bg-white shadow' : 'hover:bg-slate-100 focus:bg-white focus:shadow'}`}
+                    className={`w-full bg-transparent p-1 rounded-md transition-all ${task.completed ? 'line-through text-slate-500' : 'text-slate-800'} hover:bg-slate-100 focus:bg-white focus:shadow`}
                 />
             </td>
             <td className="p-2">
@@ -89,6 +73,15 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, index, onUpdate, onDelete, on
                 >
                     {Object.values(Status).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
+            </td>
+            <td className="p-2">
+                <input
+                    type="date"
+                    name="pelaksanaanStart"
+                    value={task.pelaksanaanStart}
+                    onChange={handleInputChange}
+                    className="w-full bg-transparent p-1 border border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none rounded-md text-slate-600 transition-colors"
+                />
             </td>
              <td className="p-2">
                 <input

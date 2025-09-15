@@ -1,18 +1,19 @@
 
+
 import { useState, useEffect, useCallback } from 'react';
-import { Task, Priority, Status } from '../types';
+import { Task, Priority, Status, Kepanitiaan } from '../types';
 
 const getLocalStorageKey = (date: Date) => {
     return `tasks_${date.getFullYear()}_${date.getMonth()}`;
 };
 
 const initialTasks: Task[] = [
-    { id: '1', completed: false, name: 'Pelatihan Koding OJT 2', priority: Priority.Urgent, status: Status.NeedApproval, deadline: '2025-09-09', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
-    { id: '2', completed: false, name: 'Pelatihan PMMKS OJT 1', priority: Priority.Urgent, status: Status.NeedApproval, deadline: '2025-09-17', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
-    { id: '3', completed: false, name: 'Syukuran & Rapat Berssama Yayasan', priority: Priority.High, status: Status.InProgress, deadline: '2025-09-13', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
-    { id: '4', completed: true, name: 'Pengambilan Dokumen KSP ke Dinas Pendidikan', priority: Priority.Low, status: Status.Pending, deadline: '2025-09-15', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
-    { id: '5', completed: true, name: 'Pembuatan SI September tahap 1', priority: Priority.Medium, status: Status.NeedApproval, deadline: '2025-09-03', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
-    { id: '6', completed: false, name: 'Pembuatan SI September tahap 2', priority: Priority.Medium, status: Status.InProgress, deadline: '2025-09-15', createdAt: '2025-09-01T10:00:00Z', updatedAt: '2025-09-01T10:00:00Z' },
+    { id: '1', completed: false, name: 'Pelatihan Koding & KA OJT 2', priority: Priority.Urgent, status: Status.InProgress, createdAt: '2025-09-01', perencanaanEnd: '2025-09-03', pelaksanaanStart: '2025-09-04', deadline: '2025-09-09', pelaporanStart: '2025-09-10', pelaporanEnd: '2025-09-11', updatedAt: '2025-09-01T10:00:00Z', penanggungJawab: 'Ayu Wandira', kepanitiaan: { ketua: 'Ayu Wandira', sekretaris: 'Budi', bendahara: 'Cici', koordinator: 'Dedi', lainnya: 'Tim IT, Panitia Inti' }, tempat: 'Ruang Meeting A', suratTugas: 'ST/001/IX/2025' },
+    { id: '2', completed: false, name: 'Pelatihan PMKS OJT 1', priority: Priority.Urgent, status: Status.NeedApproval, createdAt: '2025-09-01', perencanaanEnd: '2025-09-03', pelaksanaanStart: '2025-09-04', deadline: '2025-09-09', pelaporanStart: '2025-09-10', pelaporanEnd: '2025-09-11', updatedAt: '2025-09-01T10:00:00Z', penanggungJawab: 'Komarudin', kepanitiaan: { ketua: 'Komarudin', sekretaris: 'Ani', bendahara: 'Siti', koordinator: 'Rudi', lainnya: 'Tim Pelatihan' }, tempat: 'Aula Utama', suratTugas: 'ST/002/IX/2025' },
+    { id: '3', completed: false, name: 'Syukuran & Rapat Bersama Yayasan', priority: Priority.High, status: Status.Pending, createdAt: '2025-09-16', perencanaanEnd: '2025-09-16', pelaksanaanStart: '2025-09-17', deadline: '2025-09-17', pelaporanStart: '2025-09-18', pelaporanEnd: '2025-09-18', updatedAt: '2025-09-01T10:00:00Z', penanggungJawab: 'Komarudin', kepanitiaan: { ketua: '', sekretaris: '', bendahara: '', koordinator: '', lainnya: 'Manajemen Sekolah' }, tempat: 'Kantor Yayasan', suratTugas: 'ST/003/IX/2025' },
+    { id: '4', completed: true, name: 'Pengambilan Dokumen KSP ke Dinas', priority: Priority.Low, status: Status.Selesai, createdAt: '2025-09-12', perencanaanEnd: '2025-09-16', pelaksanaanStart: '2025-09-17', deadline: '2025-09-25', pelaporanStart: '2025-09-26', pelaporanEnd: '2025-09-26', updatedAt: '2025-09-01T10:00:00Z', penanggungJawab: 'Desti, S.Pd', kepanitiaan: { ketua: '', sekretaris: '', bendahara: '', koordinator: '', lainnya: 'Staf Administrasi' }, tempat: 'Dinas Pendidikan', suratTugas: 'ST/004/IX/2025' },
+    { id: '5', completed: true, name: 'Pembuatan SI September tahap 1', priority: Priority.Medium, status: Status.Selesai, createdAt: '2025-09-01', perencanaanEnd: '2025-09-01', pelaksanaanStart: '2025-09-02', deadline: '2025-09-03', pelaporanStart: '2025-09-04', pelaporanEnd: '2025-09-04', updatedAt: '2025-09-01T10:00:00Z', penanggungJawab: 'Tim IT', kepanitiaan: { ketua: '', sekretaris: '', bendahara: '', koordinator: '', lainnya: 'Tim IT' }, tempat: 'Online', suratTugas: '' },
+    { id: '6', completed: false, name: 'Pembuatan SI September tahap 2', priority: Priority.Medium, status: Status.InProgress, createdAt: '2025-09-05', perencanaanEnd: '2025-09-08', pelaksanaanStart: '2025-09-09', deadline: '2025-09-15', pelaporanStart: '2025-09-16', pelaporanEnd: '2025-09-16', updatedAt: '2025-09-01T10:00:00Z', penanggungJawab: 'Tim IT', kepanitiaan: { ketua: '', sekretaris: '', bendahara: '', koordinator: '', lainnya: 'Tim IT' }, tempat: 'Online', suratTugas: '' },
 ];
 
 
@@ -40,26 +41,37 @@ export const useTasks = (date?: Date) => {
         }
     }, [currentDate]);
 
-    useEffect(() => {
+    const saveTasks = useCallback(() => {
         const key = getLocalStorageKey(currentDate);
         try {
             window.localStorage.setItem(key, JSON.stringify(tasks));
+            alert('Tugas berhasil disimpan!');
         } catch (error) {
             console.error("Error writing to localStorage", error);
+            alert('Gagal menyimpan tugas.');
         }
     }, [tasks, currentDate]);
 
-    const addTask = useCallback(() => {
-        const now = new Date().toISOString();
+    const addTask = useCallback((taskData: Omit<Task, 'id' | 'completed' | 'updatedAt'>) => {
+        const nowISO = new Date().toISOString();
+        
         const newTask: Task = {
-            id: now,
-            name: 'Tugas Baru',
+            id: nowISO,
             completed: false,
-            priority: Priority.Medium,
-            status: Status.Pending,
-            deadline: new Date().toISOString().split('T')[0],
-            createdAt: now,
-            updatedAt: now,
+            updatedAt: nowISO,
+            name: taskData.name,
+            priority: taskData.priority,
+            status: taskData.status,
+            createdAt: taskData.createdAt,
+            perencanaanEnd: taskData.perencanaanEnd,
+            pelaksanaanStart: taskData.pelaksanaanStart,
+            deadline: taskData.deadline,
+            pelaporanStart: taskData.pelaporanStart,
+            pelaporanEnd: taskData.pelaporanEnd,
+            penanggungJawab: taskData.penanggungJawab,
+            kepanitiaan: taskData.kepanitiaan || { ketua: '', sekretaris: '', bendahara: '', koordinator: '', lainnya: '' },
+            tempat: taskData.tempat || '',
+            suratTugas: taskData.suratTugas || '',
         };
         setTasks(prevTasks => [...prevTasks, newTask]);
     }, []);
@@ -84,5 +96,5 @@ export const useTasks = (date?: Date) => {
         );
     }, []);
 
-    return { tasks, addTask, updateTask, deleteTask, toggleTaskCompletion, currentDate, setCurrentDate };
+    return { tasks, addTask, updateTask, deleteTask, toggleTaskCompletion, currentDate, setCurrentDate, saveTasks };
 };

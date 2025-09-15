@@ -33,32 +33,36 @@ const MonthYearSelector: React.FC<{ currentDate: Date, setCurrentDate: (date: Da
 
 const ExpenseReportPage: React.FC = () => {
     const [currentDate, setCurrentDate] = useState(new Date(2025, 8, 1));
-    const { tasks } = useTasks(currentDate); 
-    const { expenseItems, setExpenseItems, saveExpenses, updateExpenseItem, deleteExpenseItem, isLoading } = useExpenses(currentDate);
+    const { tasks, setCurrentDate: setTaskContextDate } = useTasks();
+    const { expenseItems, setExpenseItems, saveExpenses, updateExpenseItem, isLoading } = useExpenses(currentDate);
     const [editingField, setEditingField] = useState<{ id: string; field: string } | null>(null);
 
     useEffect(() => {
+        setTaskContextDate(currentDate);
+    }, [currentDate, setTaskContextDate]);
+
+    useEffect(() => {
         if (isLoading) return;
-        const monthTasks = tasks.filter(task => {
-            const taskDate = new Date(task.deadline);
-            return taskDate.getMonth() === currentDate.getMonth() && taskDate.getFullYear() === currentDate.getFullYear();
-        });
-        
-        const currentExpenseItemsMap = new Map(expenseItems.map(item => [item.id, item]));
-        const updatedExpenseItems = monthTasks.map(task => {
-            return currentExpenseItemsMap.get(task.id) || {
+
+        const tasksForMonth = tasks;
+        const expenseItemsMap = new Map(expenseItems.map(item => [item.id, item]));
+
+        const syncedExpenseItems = tasksForMonth.map(task => {
+            const existingItem = expenseItemsMap.get(task.id);
+            return {
                 id: task.id,
                 taskName: task.name,
-                biayaKegiatan: 0,
-                biayaTransport: 0,
-                biayaPanitia: 0,
+                biayaKegiatan: existingItem?.biayaKegiatan || 0,
+                biayaTransport: existingItem?.biayaTransport || 0,
+                biayaPanitia: existingItem?.biayaPanitia || 0,
+                fileBukti: existingItem?.fileBukti,
             };
         });
 
-        if (JSON.stringify(updatedExpenseItems) !== JSON.stringify(expenseItems)) {
-            setExpenseItems(updatedExpenseItems);
+        if (JSON.stringify(syncedExpenseItems) !== JSON.stringify(expenseItems)) {
+            setExpenseItems(syncedExpenseItems);
         }
-    }, [tasks, currentDate, expenseItems, setExpenseItems, isLoading]);
+    }, [tasks, expenseItems, setExpenseItems, isLoading]);
     
     const handleInputChange = (id: string, field: keyof Omit<ExpenseItem, 'id' | 'taskName' | 'fileBukti'>, value: string) => {
         const numericValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
@@ -270,12 +274,11 @@ const ExpenseReportPage: React.FC = () => {
                                     <th className="p-3 font-semibold text-xs uppercase w-40">Biaya Pelaksana</th>
                                     <th className="p-3 font-semibold text-xs uppercase w-44">Jumlah</th>
                                     <th className="p-3 font-semibold text-xs uppercase w-28">File Bukti</th>
-                                    <th className="p-3 w-12"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
                                 {isLoading ? (
-                                    <tr><td colSpan={7} className="text-center p-8 text-slate-500">Loading...</td></tr>
+                                    <tr><td colSpan={6} className="text-center p-8 text-slate-500">Loading...</td></tr>
                                 ) : expenseItems.length > 0 ? (
                                     expenseItems.map(item => {
                                         const total = item.biayaKegiatan + item.biayaTransport + item.biayaPanitia;
@@ -304,22 +307,17 @@ const ExpenseReportPage: React.FC = () => {
                                                     <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
                                                 </button>
                                             </td>
-                                            <td className="p-2 text-center">
-                                                <button onClick={() => deleteExpenseItem(item.id)} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                </button>
-                                            </td>
                                         </tr>
                                     )})
                                 ) : (
-                                    <tr><td colSpan={7} className="text-center p-8 text-slate-500">Tidak ada tugas untuk bulan ini.</td></tr>
+                                    <tr><td colSpan={6} className="text-center p-8 text-slate-500">Tidak ada tugas untuk bulan ini.</td></tr>
                                 )}
                             </tbody>
                              <tfoot className="bg-slate-50">
                                 <tr>
                                     <td className="p-3 font-bold text-slate-800 text-right" colSpan={4}>TOTAL</td>
                                     <td className="p-3 font-extrabold text-green-700 text-base text-right pr-4" colSpan={1}>{formatCurrency(totalBiaya)}</td>
-                                    <td colSpan={2}></td>
+                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>

@@ -16,8 +16,9 @@ import {
 } from 'chart.js';
 import type { Chart as ChartJSType } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { Task, BudgetItem, ExpenseItem, Status, Priority } from '../types';
+import { Task, BudgetItem, ExpenseItem, Status, Priority, Kepanitiaan } from '../types';
 import { formatCurrency } from '../utils/formatters';
+import GanttChart from './GanttChart';
 
 ChartJS.register(
   CategoryScale,
@@ -33,6 +34,14 @@ interface DetailItem {
     taskName: string;
     status: Status;
     priority: Priority;
+    createdAt: string; // Perencanaan Start
+    perencanaanEnd: string; // Perencanaan End
+    pelaksanaanStart: string;
+    deadline: string; // Pelaksanaan End
+    pelaporanStart: string;
+    pelaporanEnd: string;
+    penanggungJawab: string;
+    kepanitiaan: Kepanitiaan;
     anggaranKegiatan: number;
     anggaranTransport: number;
     anggaranPanitia: number;
@@ -61,7 +70,7 @@ const statusBgColors: { [key in Status]: string } = {
 const DashboardPage: React.FC = () => {
     const [summaryData, setSummaryData] = useState<SummaryRow[]>([]);
     const [year, setYear] = useState(new Date(2025, 8, 1).getFullYear());
-    const [activeTab, setActiveTab] = useState<'report' | 'chart'>('report');
+    const [activeTab, setActiveTab] = useState<'report' | 'chart' | 'timeline'>('report');
     const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
     const chartRef = useRef<ChartJSType<'bar', (number | null)[], unknown> | null>(null);
     
@@ -70,7 +79,7 @@ const DashboardPage: React.FC = () => {
     const [selectedStatus, setSelectedStatus] = useState<Status | 'All'>('All');
     const [selectedPriority, setSelectedPriority] = useState<Priority | 'All'>('All');
 
-    // Filters for Chart Tab
+    // Filters for Chart and Timeline Tabs
     const [chartFilterMonth, setChartFilterMonth] = useState<string>('All');
     const [chartFilterStatus, setChartFilterStatus] = useState<Status | 'All'>('All');
     const [chartFilterPriority, setChartFilterPriority] = useState<Priority | 'All'>('All');
@@ -103,7 +112,7 @@ const DashboardPage: React.FC = () => {
             const budgetMap = new Map(budgetItems.map(i => [i.id, i]));
             const expenseMap = new Map(expenseItems.map(i => [i.id, i]));
 
-            const details = tasks.map(task => {
+            const details: DetailItem[] = tasks.map(task => {
                 const budget = budgetMap.get(task.id) || { anggaranKegiatan: 0, anggaranTransport: 0, anggaranPanitia: 0 };
                 const expense = expenseMap.get(task.id) || { biayaKegiatan: 0, biayaTransport: 0, biayaPanitia: 0 };
                 return {
@@ -111,6 +120,14 @@ const DashboardPage: React.FC = () => {
                     taskName: task.name,
                     status: task.status,
                     priority: task.priority,
+                    createdAt: task.createdAt,
+                    perencanaanEnd: task.perencanaanEnd,
+                    pelaksanaanStart: task.pelaksanaanStart,
+                    deadline: task.deadline,
+                    pelaporanStart: task.pelaporanStart,
+                    pelaporanEnd: task.pelaporanEnd,
+                    penanggungJawab: task.penanggungJawab,
+                    kepanitiaan: task.kepanitiaan,
                     anggaranKegiatan: budget.anggaranKegiatan,
                     anggaranTransport: budget.anggaranTransport,
                     anggaranPanitia: budget.anggaranPanitia,
@@ -169,6 +186,20 @@ const DashboardPage: React.FC = () => {
         });
     }, [summaryData, chartFilterMonth, chartFilterStatus, chartFilterPriority]);
 
+    const ganttChartFilteredData = useMemo(() => {
+        const allDetails = summaryData.flatMap(monthData => monthData.details);
+
+        return allDetails.filter(detail => {
+            const taskDate = new Date(detail.deadline);
+            const monthName = taskDate.toLocaleString('id-ID', { month: 'long' });
+            
+            const monthMatch = chartFilterMonth === 'All' || monthName === chartFilterMonth;
+            const statusMatch = chartFilterStatus === 'All' || detail.status === chartFilterStatus;
+            const priorityMatch = chartFilterPriority === 'All' || detail.priority === chartFilterPriority;
+            return monthMatch && statusMatch && priorityMatch;
+        });
+    }, [summaryData, chartFilterMonth, chartFilterStatus, chartFilterPriority]);
+
 
     const totals = useMemo(() => {
         return filteredReportData.reduce((acc, month) => {
@@ -192,7 +223,7 @@ const DashboardPage: React.FC = () => {
         if (activeTab === 'report') {
             const monthPart = selectedMonth === 'All' ? 'Tahunan' : selectedMonth;
             return `Laporan - ${monthPart} ${year}`;
-        } else { // chart tab
+        } else { // chart or timeline tab
             const monthPart = chartFilterMonth === 'All' ? `Tahunan ${year}` : `${chartFilterMonth} ${year}`;
             return `Analisis Grafik Perbandingan - ${monthPart}`;
         }
@@ -202,7 +233,7 @@ const DashboardPage: React.FC = () => {
         if (activeTab === 'report') {
             const monthPart = selectedMonth === 'All' ? 'Tahunan' : selectedMonth;
             return `Laporan_${monthPart}_${year}.${extension}`;
-        } else { // chart tab
+        } else { // chart or timeline tab
             const monthPart = chartFilterMonth === 'All' ? 'Tahunan' : chartFilterMonth.replace(/\s/g, '_');
             return `Analisis_Grafik_${monthPart}_${year}.${extension}`;
         }
@@ -239,7 +270,6 @@ const DashboardPage: React.FC = () => {
         const worksheet = XLSX.utils.aoa_to_sheet(sheetData);
         worksheet["!cols"] = colWidths;
         
-        // Apply currency format for report tab
         if (activeTab === 'report') {
             for (let i = 4; i <= filteredReportData.length + 4; i++) {
                 for (let j = 2; j <= 4; j++) {
@@ -308,15 +338,17 @@ const DashboardPage: React.FC = () => {
             const table = new Table({ rows: [header, ...dataRows, totalRow], width: { size: 100, type: WidthType.PERCENTAGE } });
             docChildren.push(table);
         } else {
-            // Chart Tab Export
             const chartImageBase64 = chartRef.current?.toBase64Image();
             if (chartImageBase64) {
                 try {
-                    const imageBlob = await (await fetch(chartImageBase64)).blob();
-                    // FIX: The `ImageRun` constructor options for a buffer requires a `type` property to resolve ambiguity in the discriminated union type `IImageOptions`.
+                    const imageBase64 = chartImageBase64.substring(chartImageBase64.indexOf(',') + 1);
+                    const imageBuffer = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
+                    
+                    // FIX: Explicitly set the image type to 'png' to resolve the IImageOptions ambiguity
+                    // for the ImageRun constructor.
                     const imageRun = new ImageRun({
-                        type: "buffer",
-                        data: await imageBlob.arrayBuffer(),
+                        type: "png",
+                        data: imageBuffer.buffer,
                         transformation: { width: 600, height: 350 },
                     });
                     docChildren.push(new Paragraph({ children: [imageRun], alignment: AlignmentType.CENTER }));
@@ -551,7 +583,6 @@ const DashboardPage: React.FC = () => {
             const totalBiaya = task.biayaKegiatan + task.biayaTransport + task.biayaPanitia;
             const selisih = totalAnggaran - totalBiaya;
     
-            // Handle zero budget or expense cases first
             if (totalAnggaran === 0) {
                 return `\n\n• Tugas "${task.taskName}": Belum memiliki alokasi anggaran. Saran: Segera susun rencana anggaran untuk tugas ini agar memiliki acuan biaya yang jelas dan terukur.`;
             }
@@ -572,7 +603,6 @@ const DashboardPage: React.FC = () => {
                 return `\n\n• Tugas "${task.taskName}": Realisasi biaya masih Rp 0 dari anggaran ${formatCurrency(totalAnggaran)}. Saran: ${suggestion}`;
             }
     
-            // Standard performance analysis
             let performanceStatus: string;
             let commentary: string;
             let suggestion: string;
@@ -591,7 +621,6 @@ const DashboardPage: React.FC = () => {
                 suggestion = `Lakukan evaluasi pada rincian biaya yang membengkak untuk menemukan potensi efisiensi pada perencanaan tugas serupa di masa depan.`;
             }
     
-            // Add status-based suggestions
             switch (task.status) {
                 case Status.Selesai:
                     suggestion += " Hasil evaluasi tugas ini dapat menjadi pelajaran berharga untuk perencanaan proyek selanjutnya.";
@@ -820,6 +849,16 @@ const DashboardPage: React.FC = () => {
                     >
                         Grafik Perbandingan
                     </button>
+                    <button
+                        onClick={() => setActiveTab('timeline')}
+                        className={`shrink-0 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+                            activeTab === 'timeline'
+                                ? 'border-[#06064F] text-[#06064F]'
+                                : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                        }`}
+                    >
+                        Timeline Tugas
+                    </button>
                 </nav>
             </div>
             
@@ -1035,6 +1074,67 @@ const DashboardPage: React.FC = () => {
                                 {generateChartDescription()}
                             </p>
                         </div>
+                    </div>
+                )}
+                 {activeTab === 'timeline' && (
+                    <div className="mt-2">
+                         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-4 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                            <div className="flex-1">
+                                <label htmlFor="month-filter-gantt" className="block text-xs font-medium text-slate-600 mb-1">Filter Timeline by Bulan</label>
+                                <select
+                                    id="month-filter-gantt"
+                                    value={chartFilterMonth}
+                                    onChange={(e) => setChartFilterMonth(e.target.value)}
+                                    className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-700 bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
+                                >
+                                    <option value="All">Semua Bulan</option>
+                                    {summaryData.map(data => (
+                                        <option key={data.month} value={data.month}>{data.month}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex-1">
+                                <label htmlFor="status-filter-gantt" className="block text-xs font-medium text-slate-600 mb-1">Filter Timeline by Status</label>
+                                <select
+                                    id="status-filter-gantt"
+                                    value={chartFilterStatus}
+                                    onChange={(e) => setChartFilterStatus(e.target.value as Status | 'All')}
+                                    className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-700 bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
+                                >
+                                    <option value="All">All Statuses</option>
+                                    {Object.values(Status).map(status => (
+                                        <option key={status} value={status}>{status}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex-1">
+                                <label htmlFor="priority-filter-gantt" className="block text-xs font-medium text-slate-600 mb-1">Filter Timeline by Priority</label>
+                                <select
+                                    id="priority-filter-gantt"
+                                    value={chartFilterPriority}
+                                    onChange={(e) => setChartFilterPriority(e.target.value as Priority | 'All')}
+                                    className="w-full p-2 border border-slate-300 rounded-md text-sm text-slate-700 bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors"
+                                >
+                                    <option value="All">All Priorities</option>
+                                    {Object.values(Priority).map(priority => (
+                                        <option key={priority} value={priority}>{priority}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="flex sm:items-end pt-2 sm:pt-0">
+                                <button
+                                    onClick={() => {
+                                        setChartFilterMonth('All');
+                                        setChartFilterStatus('All');
+                                        setChartFilterPriority('All');
+                                    }}
+                                    className="w-full sm:w-auto bg-[#06064F] text-white px-4 py-2 rounded-md text-sm font-semibold hover:opacity-90 active:opacity-100 transition-opacity"
+                                >
+                                    Reset
+                                </button>
+                            </div>
+                        </div>
+                        <GanttChart tasks={ganttChartFilteredData} year={year} selectedMonth={chartFilterMonth} />
                     </div>
                 )}
             </div>

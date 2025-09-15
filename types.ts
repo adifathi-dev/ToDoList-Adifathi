@@ -14,15 +14,31 @@ export enum Status {
     Pending = 'Pending',
 }
 
+export interface Kepanitiaan {
+    ketua: string;
+    sekretaris: string;
+    bendahara: string;
+    koordinator: string;
+    lainnya: string;
+}
+
 export interface Task {
     id: string;
     completed: boolean;
     name: string;
     priority: Priority;
     status: Status;
-    deadline: string; // ISO string format 'YYYY-MM-DD'
-    createdAt: string;
+    createdAt: string; // Perencanaan Start
+    perencanaanEnd: string; // Perencanaan End
+    pelaksanaanStart: string;
+    deadline: string; // Pelaksanaan End
+    pelaporanStart: string;
+    pelaporanEnd: string;
     updatedAt: string;
+    penanggungJawab: string;
+    kepanitiaan: Kepanitiaan;
+    tempat?: string;
+    suratTugas?: string;
 }
 
 export interface BudgetItem {

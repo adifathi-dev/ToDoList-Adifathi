@@ -11,7 +11,8 @@ import Sidebar from './Sidebar';
 import TaskList from './TaskList';
 import { useTasks } from '../hooks/useTasks';
 import FilterControls from './FilterControls';
-import { Status, Priority } from '../types';
+import { Status, Priority, Task } from '../types';
+import TaskModal from './TaskModal';
 
 const TodoListPage: React.FC = () => {
   const {
@@ -21,21 +22,29 @@ const TodoListPage: React.FC = () => {
     deleteTask,
     toggleTaskCompletion,
     currentDate,
-    setCurrentDate
+    setCurrentDate,
+    saveTasks
   } = useTasks();
   
   const [selectedStatus, setSelectedStatus] = useState<Status | 'All'>('All');
   const [selectedPriority, setSelectedPriority] = useState<Priority | 'All'>('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(task => {
       const statusMatch = selectedStatus === 'All' || task.status === selectedStatus;
       const priorityMatch = selectedPriority === 'All' || task.priority === selectedPriority;
-      return statusMatch && priorityMatch;
+      const searchMatch = task.name.toLowerCase().includes(searchTerm.toLowerCase());
+      return statusMatch && priorityMatch && searchMatch;
     });
-  }, [tasks, selectedStatus, selectedPriority]);
+  }, [tasks, selectedStatus, selectedPriority, searchTerm]);
 
   const printContentRef = useRef<HTMLDivElement>(null);
+
+  const handleSaveNewTask = (taskData: Omit<Task, 'id' | 'completed' | 'updatedAt'>) => {
+    addTask(taskData);
+  };
 
   const handlePrint = async () => {
     const contentToPrint = printContentRef.current;
@@ -146,6 +155,7 @@ const TodoListPage: React.FC = () => {
             new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "TUGAS", bold: true })], alignment: AlignmentType.CENTER })] }),
             new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "PRIORITAS", bold: true })], alignment: AlignmentType.CENTER })] }),
             new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "STATUS", bold: true })], alignment: AlignmentType.CENTER })] }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "PELAKSANAAN", bold: true })], alignment: AlignmentType.CENTER })] }),
             new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "DEADLINE", bold: true })], alignment: AlignmentType.CENTER })] }),
             new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "SISA WAKTU", bold: true })], alignment: AlignmentType.CENTER })] }),
         ],
@@ -159,6 +169,7 @@ const TodoListPage: React.FC = () => {
             new TableCell({ children: [new Paragraph(task.name)] }),
             new TableCell({ children: [new Paragraph(task.priority)] }),
             new TableCell({ children: [new Paragraph(task.status)] }),
+            new TableCell({ children: [new Paragraph(task.pelaksanaanStart)] }),
             new TableCell({ children: [new Paragraph(task.deadline)] }),
             new TableCell({ children: [new Paragraph({ text: String(sisaWaktu), alignment: AlignmentType.CENTER })] }),
         ],
@@ -226,6 +237,11 @@ const TodoListPage: React.FC = () => {
 
   return (
     <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm">
+        <TaskModal
+            isOpen={isTaskModalOpen}
+            onClose={() => setIsTaskModalOpen(false)}
+            onSave={handleSaveNewTask}
+        />
         <div className="flex justify-between items-center mb-4 sm:mb-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
                 <h1 className="text-xl sm:text-2xl font-bold text-slate-900">TO DO LIST Adifathi</h1>
@@ -263,9 +279,12 @@ const TodoListPage: React.FC = () => {
                     onStatusChange={setSelectedStatus}
                     selectedPriority={selectedPriority}
                     onPriorityChange={setSelectedPriority}
+                    searchTerm={searchTerm}
+                    onSearchChange={setSearchTerm}
                     onResetFilter={() => {
                         setSelectedStatus('All');
                         setSelectedPriority('All');
+                        setSearchTerm('');
                     }}
                 />
                 <div className="my-4">
@@ -282,10 +301,11 @@ const TodoListPage: React.FC = () => {
                 <div className="print-container" ref={printContentRef}>
                     <TaskList
                         tasks={filteredTasks}
-                        onAddTask={addTask}
+                        onAddTask={() => setIsTaskModalOpen(true)}
                         onUpdateTask={updateTask}
                         onDeleteTask={deleteTask}
                         onToggleTask={toggleTaskCompletion}
+                        onSaveTasks={saveTasks}
                     />
                 </div>
             </div>

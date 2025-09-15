@@ -39,12 +39,6 @@ export const useExpenses = (currentDate: Date) => {
             prev.map(item => (item.id === id ? { ...item, ...updatedFields } : item))
         );
     }, []);
-
-    const deleteExpenseItem = useCallback((id: string) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus item biaya ini?')) {
-            setExpenseItems(prev => prev.filter(item => item.id !== id));
-        }
-    }, []);
     
-    return { expenseItems, setExpenseItems, updateExpenseItem, deleteExpenseItem, saveExpenses, isLoading };
+    return { expenseItems, setExpenseItems, updateExpenseItem, saveExpenses, isLoading };
 };

@@ -39,12 +39,6 @@ export const useBudget = (currentDate: Date) => {
             prev.map(item => (item.id === id ? { ...item, ...updatedFields } : item))
         );
     }, []);
-
-    const deleteBudgetItem = useCallback((id: string) => {
-        if (window.confirm('Apakah Anda yakin ingin menghapus item anggaran ini?')) {
-            setBudgetItems(prev => prev.filter(item => item.id !== id));
-        }
-    }, []);
     
-    return { budgetItems, setBudgetItems, updateBudgetItem, deleteBudgetItem, saveBudget, isLoading };
+    return { budgetItems, setBudgetItems, updateBudgetItem, saveBudget, isLoading };
 };

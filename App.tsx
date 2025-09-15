@@ -4,8 +4,9 @@ import TodoListPage from './components/TodoListPage';
 import BudgetPlanPage from './components/BudgetPlanPage';
 import ExpenseReportPage from './components/ExpenseReportPage';
 import DashboardPage from './components/DashboardPage';
+import SupportingDataPage from './components/SupportingDataPage';
 
-export type Page = 'todolist' | 'budget' | 'expenses' | 'dashboard';
+export type Page = 'todolist' | 'budget' | 'expenses' | 'supportingdata' | 'dashboard';
 
 const App: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<Page>('todolist');
@@ -18,6 +19,8 @@ const App: React.FC = () => {
                 return <BudgetPlanPage />;
             case 'expenses':
                 return <ExpenseReportPage />;
+            case 'supportingdata':
+                return <SupportingDataPage />;
             case 'dashboard':
                 return <DashboardPage />;
             default:

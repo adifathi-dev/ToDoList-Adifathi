@@ -33,47 +33,39 @@ const MonthYearSelector: React.FC<{ currentDate: Date, setCurrentDate: (date: Da
 
 const BudgetPlanPage: React.FC = () => {
     const [currentDate, setCurrentDate] = useState(new Date(2025, 8, 1)); // Default to Sep 2025
-    const { tasks } = useTasks(currentDate); 
-    const { budgetItems, setBudgetItems, saveBudget, updateBudgetItem, deleteBudgetItem, isLoading } = useBudget(currentDate);
+    const { tasks, setCurrentDate: setTaskContextDate } = useTasks();
+    const { budgetItems, setBudgetItems, saveBudget, updateBudgetItem, isLoading } = useBudget(currentDate);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadTargetId, setUploadTargetId] = useState<string | null>(null);
     const [editingField, setEditingField] = useState<{ id: string; field: string } | null>(null);
 
     useEffect(() => {
-        if (isLoading) return; // Prevent running logic while data is loading
-        const monthTasks = tasks.filter(task => {
-            const taskDate = new Date(task.deadline);
-            return taskDate.getMonth() === currentDate.getMonth() && taskDate.getFullYear() === currentDate.getFullYear();
-        });
-        
-        const existingTaskIds = new Set(budgetItems.map(b => b.id));
-        const newBudgetItems: BudgetItem[] = monthTasks
-            .filter(task => !existingTaskIds.has(task.id))
-            .map(task => ({
-                id: task.id,
-                taskName: task.name,
-                anggaranKegiatan: 0,
-                anggaranTransport: 0,
-                anggaranPanitia: 0,
-            }));
+        setTaskContextDate(currentDate);
+    }, [currentDate, setTaskContextDate]);
 
-        // A more robust way to merge tasks and budget items
-        const currentBudgetItemsMap = new Map(budgetItems.map(item => [item.id, item]));
-        const updatedBudgetItems = monthTasks.map(task => {
-            return currentBudgetItemsMap.get(task.id) || {
+
+    useEffect(() => {
+        if (isLoading) return;
+
+        const tasksForMonth = tasks;
+        const budgetItemsMap = new Map(budgetItems.map(item => [item.id, item]));
+
+        const syncedBudgetItems = tasksForMonth.map(task => {
+            const existingItem = budgetItemsMap.get(task.id);
+            return {
                 id: task.id,
                 taskName: task.name,
-                anggaranKegiatan: 0,
-                anggaranTransport: 0,
-                anggaranPanitia: 0,
+                anggaranKegiatan: existingItem?.anggaranKegiatan || 0,
+                anggaranTransport: existingItem?.anggaranTransport || 0,
+                anggaranPanitia: existingItem?.anggaranPanitia || 0,
+                fileRAB: existingItem?.fileRAB,
             };
         });
 
-        // Only update if there's a change to avoid loops
-        if (JSON.stringify(updatedBudgetItems) !== JSON.stringify(budgetItems)) {
-            setBudgetItems(updatedBudgetItems);
+        if (JSON.stringify(syncedBudgetItems) !== JSON.stringify(budgetItems)) {
+            setBudgetItems(syncedBudgetItems);
         }
-    }, [tasks, currentDate, budgetItems, setBudgetItems, isLoading]);
+    }, [tasks, budgetItems, setBudgetItems, isLoading]);
     
     const handleInputChange = (id: string, field: keyof Omit<BudgetItem, 'id' | 'taskName' | 'fileRAB'>, value: string) => {
         const numericValue = parseInt(value.replace(/\D/g, ''), 10) || 0;
@@ -328,12 +320,11 @@ const BudgetPlanPage: React.FC = () => {
                                     <th className="p-3 font-semibold text-xs uppercase w-40">Anggaran Pelaksana</th>
                                     <th className="p-3 font-semibold text-xs uppercase w-44">Jumlah</th>
                                     <th className="p-3 font-semibold text-xs uppercase w-40">File RAB</th>
-                                    <th className="p-3 w-12"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-200">
                                 {isLoading ? (
-                                    <tr><td colSpan={7} className="text-center p-8 text-slate-500">Loading...</td></tr>
+                                    <tr><td colSpan={6} className="text-center p-8 text-slate-500">Loading...</td></tr>
                                 ) : budgetItems.length > 0 ? (
                                     budgetItems.map(item => {
                                         const total = item.anggaranKegiatan + item.anggaranTransport + item.anggaranPanitia;
@@ -380,22 +371,17 @@ const BudgetPlanPage: React.FC = () => {
                                                     </button>
                                                 )}
                                             </td>
-                                            <td className="p-2 text-center">
-                                                <button onClick={() => deleteBudgetItem(item.id)} className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                                </button>
-                                            </td>
                                         </tr>
                                     )})
                                 ) : (
-                                    <tr><td colSpan={7} className="text-center p-8 text-slate-500">Tidak ada tugas untuk bulan ini. Silakan tambahkan di To-Do List.</td></tr>
+                                    <tr><td colSpan={6} className="text-center p-8 text-slate-500">Tidak ada tugas untuk bulan ini. Silakan tambahkan di To-Do List.</td></tr>
                                 )}
                             </tbody>
                              <tfoot className="bg-slate-50">
                                 <tr>
                                     <td className="p-3 font-bold text-slate-800 text-right" colSpan={4}>TOTAL</td>
                                     <td className="p-3 font-extrabold text-blue-700 text-base text-right pr-4" colSpan={1}>{formatCurrency(totalAnggaran)}</td>
-                                    <td colSpan={2}></td>
+                                    <td></td>
                                 </tr>
                             </tfoot>
                         </table>
